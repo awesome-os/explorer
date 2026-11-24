@@ -1,0 +1,431 @@
+# Installation and startup
+
+Luciole needs a Wayland session with EGL/OpenGL ES support. Neither the Noctalia shell nor a particular compositor is required.
+
+Prefer a distribution package when one is available; it provides the simplest installation and upgrade path. Otherwise, build from source as described below. Package maintainers will find dependencies and install layout in [PACKAGING.md](../../PACKAGING.md).
+
+**Trash and remote folders require GVfs.** Install and enable your distribution's GIO/GVfs services and the backends for SFTP/SSH, SMB or WebDAV as needed, with a working session D-Bus connection. An SSH client alone does not provide SFTP browsing. Without the relevant backend, a remote address can fail with **Operation not supported** before a login prompt appears. See [network folders](browsing.md#network-folders) for connection examples and troubleshooting, and the distribution-specific setup below.
+
+To use Luciole for other applications' Open and Save dialogs, see [file picker setup](#use-luciole-as-the-file-picker).
+
+## Arch Linux
+
+[`luciole-git`](https://aur.archlinux.org/packages/luciole-git) is available in the AUR and builds the latest development version. Install it with an AUR helper such as `paru` or `yay`:
+
+```sh
+paru -S luciole-git
+# or
+yay -S luciole-git
+```
+
+Optional helpers for video, PDF and archive support and network locations are listed as optional dependencies; see [optional features](#optional-features).
+
+## Fedora
+
+[Terra](https://wiki.fyralabs.com/Terra) provides nightly builds:
+
+```sh
+sudo dnf install luciole-nightly
+```
+
+Alternatively, the [`lemmy/favorites`](https://copr.fedorainfracloud.org/coprs/lemmy/favorites/) COPR repository provides development builds:
+
+```sh
+sudo dnf copr enable lemmy/favorites
+sudo dnf install luciole-git
+```
+
+For Trash and network locations, install `gvfs` and the backends you need, such as `gvfs-smb`; see [optional features](#optional-features).
+
+## openSUSE
+
+[home:neifua:Noctalia](https://build.opensuse.org/project/show/home:neifua:Noctalia) OBS repo provides `Luciole` for both **Tumbleweed** and **Slowroll** favors 
+
+#### Tumbleweed
+
+```sh
+sudo zypper addrepo --refresh --name 'Noctalia Project' https://download.opensuse.org/repositories/home:neifua:Noctalia/openSUSE_Tumbleweed/home:neifua:Noctalia.repo
+sudo zypper refresh && sudo zypper install luciole
+```
+
+#### Slowroll
+```sh
+sudo zypper addrepo --refresh --name 'Noctalia Project' https://download.opensuse.org/repositories/home:neifua:Noctalia/openSUSE_Slowroll/home:neifua:Noctalia.repo
+sudo zypper refresh && sudo zypper install luciole
+```
+
+## Debian and Ubuntu
+
+The NickH APT repository provides Luciole for Debian-based distributions.
+
+### Install the repository signing key
+
+```sh
+wget https://pkg.noctalia.dev/deb/nickh-archive-keyring.deb
+sudo dpkg -i nickh-archive-keyring.deb
+```
+
+### Add the repository
+
+Choose the source matching your distribution:
+
+```sh
+# Debian Trixie
+sudo wget -O /etc/apt/sources.list.d/noctalia-trixie.sources \
+  https://pkg.noctalia.dev/deb/noctalia-trixie.sources
+
+# Debian Sid
+sudo wget -O /etc/apt/sources.list.d/noctalia-unstable.sources \
+  https://pkg.noctalia.dev/deb/noctalia-unstable.sources
+
+# Ubuntu 26.04
+sudo wget -O /etc/apt/sources.list.d/noctalia-resolute.sources \
+  https://pkg.noctalia.dev/deb/noctalia-resolute.sources
+
+# Ubuntu 26.10
+sudo wget -O /etc/apt/sources.list.d/noctalia-stonking.sources \
+  https://pkg.noctalia.dev/deb/noctalia-stonking.sources
+```
+
+### Install Luciole
+
+Choose the command matching your distribution:
+
+```sh
+sudo apt update
+
+# Debian Trixie
+sudo apt install -t trixie-backports luciole
+
+# Debian Sid and Ubuntu 26.04 and 26.10
+sudo apt install luciole
+```
+
+The repository provides `amd64` and `arm64` packages only. For Trash and network locations, install `gvfs` and the backends you need, such as `gvfs-backends`; see [optional features](#optional-features).
+
+## NixOS
+
+The flake provides a package, NixOS, Home Manager and hjem modules, and a pinned development environment for `x86_64-linux` and `aarch64-linux`. Enable the `nix-command` and `flakes` experimental features in your Nix configuration before using the commands below.
+
+Selecting Luciole as the file picker is a separate, optional step; see [NixOS file picker setup](#file-picker-on-nixos).
+
+### GVfs for Trash and remote folders
+
+On NixOS, Trash and remote folders such as `sftp://`, `ssh://`, `smb://` and WebDAV require GVfs services. Installing the Luciole package alone does not enable those services. This also applies to `nix run` and installations managed through Home Manager or hjem.
+
+Add this to your **NixOS system configuration**:
+
+```nix
+services.gvfs.enable = true;
+```
+
+This is a [NixOS service option](https://github.com/NixOS/nixpkgs/blob/master/nixos/modules/services/desktops/gvfs.nix), not a Home Manager option. Rebuild your system, then restart Luciole. If the existing desktop session does not pick up the new service environment, log out and back in.
+
+### Try Luciole
+
+Run Luciole without adding it to your system configuration:
+
+```sh
+nix run github:noctalia-dev/luciole
+```
+
+To build the package and keep a local result link:
+
+```sh
+nix build github:noctalia-dev/luciole
+./result/bin/luciole
+```
+
+### Add the flake input
+
+Add Luciole to your existing `flake.nix` inputs:
+
+```nix
+{
+  inputs.luciole.url = "github:noctalia-dev/luciole";
+}
+```
+
+The module examples below use `inputs`. Pass it to NixOS modules through `specialArgs` in your existing `nixpkgs.lib.nixosSystem` call:
+
+```nix
+specialArgs = { inherit inputs; };
+```
+
+For standalone Home Manager, pass it through `extraSpecialArgs` in `home-manager.lib.homeManagerConfiguration`. With Home Manager's NixOS module, use `home-manager.extraSpecialArgs = { inherit inputs; };`.
+
+### NixOS module
+
+Import the module in your system configuration and enable Luciole:
+
+```nix
+{ inputs, ... }:
+{
+  imports = [ inputs.luciole.nixosModules.default ];
+
+  programs.luciole.enable = true;
+  services.gvfs.enable = true;
+}
+```
+
+The Luciole module installs the application system-wide. Enable GVfs separately as shown above for Trash and network locations; Luciole's modules do not enable it automatically. Optional DNS-SD discovery also needs `services.avahi.enable = true;`.
+
+Rebuild using your configuration's host name:
+
+```sh
+sudo nixos-rebuild switch --flake .#your-host
+```
+
+Alternatively, install only the package with `environment.systemPackages = [ inputs.luciole.packages.${pkgs.stdenv.hostPlatform.system}.default ];` in a module receiving `inputs` and `pkgs`, and enable `services.gvfs.enable = true;` yourself. You can omit the package list entry when using one of Luciole's modules, which installs the package for you.
+
+### Home Manager
+
+With Home Manager already configured, import Luciole's module in your home configuration:
+
+```nix
+{ inputs, ... }:
+{
+  imports = [ inputs.luciole.homeModules.default ];
+
+  programs.luciole = {
+    enable = true;
+    settings = {
+      browser = {
+        view_mode = "grid";
+        show_hidden = false;
+      };
+    };
+  };
+}
+```
+
+Apply it with your usual Home Manager switch command, or rebuild NixOS when Home Manager is integrated into the system configuration. On NixOS, set `services.gvfs.enable = true;` in the system configuration, outside `home-manager.users` or `home.nix`, even when Home Manager installs Luciole. See [GVfs setup](#gvfs-for-trash-and-remote-folders). On other distributions, install and enable the distribution's GIO/GVfs services.
+
+### hjem
+
+With hjem already configured, add Luciole's module to `hjem.extraModules` in your NixOS configuration and enable it for your user:
+
+```nix
+{ inputs, ... }:
+{
+  hjem = {
+    extraModules = [ inputs.luciole.hjemModules.default ];
+    users.your-user.programs.luciole = {
+      enable = true;
+      settings.browser.view_mode = "grid";
+    };
+  };
+
+  services.gvfs.enable = true;
+}
+```
+
+Replace `your-user` with your username, then rebuild NixOS.
+
+Both home modules accept `settings` as an attribute set, a TOML string or a path to a TOML file, and validate it at build time by default. Omitting `settings` leaves `config.toml` untouched. The declarative base lives in `~/.config/luciole/config.toml`; GUI changes remain writable in `settings.toml` and take precedence. Reset a preference in Settings to use its declarative value again. See [configuration](configuration.md#files-and-precedence).
+
+### Binary cache
+
+Pre-built binaries for Luciole are available on [Cachix](https://app.cachix.org/cache/noctalia). Add the cache to the NixOS configuration to avoid compiling them locally:
+
+> **Note:** To use the binary cache, omit `inputs.nixpkgs.follows` from the Luciole input. Overriding any of Luciole's inputs changes the derivation hash, causing cache misses.
+
+```nix
+{
+  nix.settings = {
+    extra-substituters = [ "https://noctalia.cachix.org" ];
+    extra-trusted-public-keys = [ "noctalia.cachix.org-1:pCOR47nnMEo5thcxNDtzWpOxNFQsBRglJzxWPp3dkU4=" ];
+  };
+}
+```
+
+Tracking `main` directly may pull in a commit that CI hasn't cached yet. The [`cachix`](https://github.com/noctalia-dev/luciole/tree/cachix) branch always points to the latest cached commit, so pinning to it avoids cache misses:
+
+```nix
+{
+  inputs.luciole.url = "github:noctalia-dev/luciole/cachix";
+}
+```
+
+### Updates and development
+
+Update the pinned input from your configuration directory, then apply your configuration again:
+
+```sh
+nix flake update luciole
+```
+
+For source development, run `nix develop` from a Luciole checkout, then use the [development build commands](#development-builds). [Nix packaging](../../PACKAGING.md#nix-integration) documents the wrapper and runtime integration.
+
+## Build from source
+
+Luciole builds with `just`, Meson and a C++23 compiler (GCC 13+ or Clang 16+).
+
+### Arch Linux dependencies
+
+Build and library dependencies:
+
+```sh
+sudo pacman -S --needed base-devel meson just \
+  wayland wayland-protocols libglvnd \
+  glib2 freetype2 fontconfig cairo pango harfbuzz libxkbcommon \
+  gdk-pixbuf2 librsvg libpng libarchive xz acl \
+  tomlplusplus nlohmann-json stb
+```
+
+Runtime services and optional helpers:
+
+```sh
+sudo pacman -S --needed shared-mime-info glycin gsettings-desktop-schemas dconf \
+  adwaita-icon-theme gvfs gvfs-smb gvfs-dnssd glib-networking \
+  ffmpeg ffmpegthumbnailer poppler 7zip xdg-terminal-exec
+```
+
+GVfs provides Trash and network locations; the remaining helpers enable media and PDF thumbnails, encrypted 7z archives and terminal actions. See [optional features](#optional-features).
+
+### Fedora dependencies
+
+Build and library dependencies:
+
+```sh
+sudo dnf install gcc-c++ meson just \
+  wayland-devel wayland-protocols-devel libglvnd-devel \
+  glib2-devel freetype-devel fontconfig-devel cairo-devel pango-devel harfbuzz-devel libxkbcommon-devel \
+  gdk-pixbuf2-devel librsvg2-devel libpng-devel libarchive-devel xz-devel libacl-devel \
+  tomlplusplus-devel json-devel stb_image_resize2-devel
+```
+
+Runtime services and optional helpers:
+
+```sh
+sudo dnf install shared-mime-info glycin-loaders gsettings-desktop-schemas dconf \
+  adwaita-icon-theme gvfs gvfs-smb glib-networking \
+  ffmpeg-free ffmpegthumbnailer poppler-utils 7zip xdg-terminal-exec
+```
+
+Fedora's `ffmpeg-free` omits some patent-encumbered codecs; the `ffmpeg` package from [RPM Fusion](https://rpmfusion.org/) gives thumbnails for more video formats.
+
+### Other distributions
+
+Install the development packages listed in [PACKAGING.md](../../PACKAGING.md#dependencies).
+
+### Build and install
+
+```sh
+git clone https://github.com/noctalia-dev/luciole.git
+cd luciole
+just build release
+sudo just install release
+```
+
+This installs under `/usr/local`; use `just configure release /usr` before building to choose another prefix. To uninstall, run `sudo ninja -C build-release uninstall` from the same checkout.
+
+### Development builds
+
+Inside the source directory, `just run release` builds and starts Luciole using the source tree's assets, without installing. Do not reuse that asset override in an installed launcher. `just` lists every recipe, and [CONTRIBUTING.md](../../CONTRIBUTING.md) covers checks and code style.
+
+## Start Luciole
+
+```sh
+luciole
+luciole /path/to/folder
+luciole 'file:///path/to/folder'
+```
+
+Without an argument, Luciole opens Home. Supply one directory path or URI to start elsewhere. Remote locations require the corresponding installed GIO/GVfs backend and session services. Luciole connects when you open an unmounted location and presents the provider's login or confirmation requests. See [network folders](browsing.md#network-folders) for SFTP addresses, requirements and troubleshooting. A separate connect-to-server address form is still planned.
+
+Every window runs in one Luciole process. Starting `luciole` while it is already running opens a new window in that process, so additional windows cost far less memory than separate instances. A relative path names a folder under the directory where the command ran. The process exits when its last window closes.
+
+Use `luciole --help` for command syntax and `luciole --version` for the version and build revision. These commands do not open a window. Bash, Zsh and Fish completions are installed with Luciole; `luciole completions bash` also prints the Bash completion script.
+
+Installing Luciole does not automatically make it the default file manager.
+
+## Use Luciole as the file picker
+
+Luciole can provide Open and Save dialogs for applications that use the FileChooser portal. Install Luciole and `xdg-desktop-portal`, then select the `luciole` backend as described below. Keep your desktop's other portal backends installed for screen sharing, screenshots and other interfaces. This choice is separate from the default file manager; applications that use their own dialogs keep them.
+
+If you use [xdg-desktop-portal-umbriel](https://github.com/noctalia-dev/xdg-desktop-portal-umbriel), its supplied configuration already prefers Luciole when installed, with GTK as the fallback. No chooser override is needed unless another configuration takes precedence.
+
+### File picker on other distributions
+
+Install your distribution's `xdg-desktop-portal` package alongside Luciole. Luciole's installation must include `share/xdg-desktop-portal/portals/luciole.portal` and its D-Bus service; an uninstalled development binary alone does not register the picker.
+
+Check your desktop name:
+
+```sh
+echo "$XDG_CURRENT_DESKTOP"
+```
+
+Find the desktop's portal configuration in `/usr/share/xdg-desktop-portal/` or `/etc/xdg/xdg-desktop-portal/`; source installations may use `/usr/local/share/xdg-desktop-portal/`. For example, GNOME uses `gnome-portals.conf` and KDE uses `kde-portals.conf`. Names use the lowercase desktop name; a colon-separated desktop value supplies several names to check in order.
+
+Copy that configuration into `~/.config/xdg-desktop-portal/`, keeping its filename and all existing preferences. If you already have a user configuration there, edit it instead. Use `$XDG_CONFIG_HOME/xdg-desktop-portal/` if you set a different configuration root.
+
+Under its existing `[preferred]` section, add or replace only the FileChooser entry:
+
+```ini
+[preferred]
+org.freedesktop.impl.portal.FileChooser=luciole;gtk
+```
+
+This is an entry to merge into the copied configuration, not a replacement for the whole file. Keep its `default` and other interface preferences. The `gtk` fallback needs `xdg-desktop-portal-gtk`; you can omit it or use another installed FileChooser backend such as `kde`.
+
+If your session supplies no portal configuration, create `~/.config/xdg-desktop-portal/portals.conf`. With `xdg-desktop-portal-gtk` installed, this is a minimal starting point:
+
+```ini
+[preferred]
+default=gtk
+org.freedesktop.impl.portal.FileChooser=luciole;gtk
+```
+
+Configure any compositor-specific interfaces, such as screen sharing, through their appropriate backend as well. Portal configuration files are selected as a whole; a new file does not inherit preferences from lower-priority files. See the upstream [configuration search rules](https://flatpak.github.io/xdg-desktop-portal/docs/portals.conf.html).
+
+### File picker on NixOS
+
+Register Luciole through `xdg.portal.extraPortals` in your **NixOS system configuration**, including when Home Manager or hjem installs Luciole. Running it with `nix run` alone does not register the backend for the session.
+
+For a session without an existing portal configuration, this example supplies GTK for other interfaces and Luciole for file picking:
+
+```nix
+{ inputs, pkgs, ... }:
+{
+  xdg.portal = {
+    enable = true;
+    extraPortals = [
+      inputs.luciole.packages.${pkgs.stdenv.hostPlatform.system}.default
+      pkgs.xdg-desktop-portal-gtk
+    ];
+    config.common = {
+      default = [ "gtk" ];
+      "org.freedesktop.impl.portal.FileChooser" = [ "luciole" "gtk" ];
+    };
+  };
+}
+```
+
+Use the [flake input and argument setup](#add-the-flake-input) above. If you already configure portals, add Luciole to `extraPortals` and add the FileChooser preference to the configuration for your session, retaining its other preferences and backend packages. For example, use `xdg.portal.config.gnome."org.freedesktop.impl.portal.FileChooser" = [ "luciole" "gtk" ];` for a managed GNOME configuration, or `config.kde` with `[ "luciole" "kde" ]` for KDE. Preserve the desktop's supplied `default` and interface entries when bringing a packaged configuration into Nix.
+
+`config.common` generates the generic `portals.conf`; it is not merged into desktop-specific configurations. A matching desktop-specific file in the same directory takes precedence, and a generic file can shadow a packaged desktop configuration in a lower-priority directory. User files in `~/.config/xdg-desktop-portal/` can also override the NixOS configuration. See the [NixOS portal options](https://github.com/NixOS/nixpkgs/blob/master/nixos/modules/config/xdg/portal.nix).
+
+Rebuild your system after changing the configuration, then apply the session steps below. Luciole's modules do not select the file picker automatically.
+
+### Apply and check the file picker
+
+Log out and back in after installation and configuration, or restart the portal frontend in sessions managed by systemd:
+
+```sh
+systemctl --user restart xdg-desktop-portal.service
+```
+
+Restart the requesting application, then try its Open or Save dialog. The application must use the FileChooser portal for Luciole to appear; application-specific portal preferences may be required. The picker has its own [view, hidden-file and preview settings](configuration.md#browser-preferences).
+
+If the old picker still appears, check the selected configuration's filename and precedence, Luciole's installed portal file and the requesting application's portal support. With systemd, inspect errors using:
+
+```sh
+journalctl --user -b -u xdg-desktop-portal.service
+```
+
+The fallback list covers a backend that is absent; it does not guarantee fallback when an installed backend fails to start or returns an error.
+
+## Optional features
+
+Image format coverage depends on the installed GdkPixbuf image loaders (Glycin loaders when GdkPixbuf is built with Glycin). Video/audio thumbnails and metadata need FFmpeg; PDF thumbnails and metadata need Poppler utilities. Encrypted 7z input needs a system 7-Zip executable. Terminal actions need `xdg-terminal-exec` and a suitable terminal. Trash and mounted network locations need the appropriate GIO/GVfs services. Missing helpers leave ordinary local browsing available; [Packaging](../../PACKAGING.md#runtime-integration-and-helpers) lists the full requirements.

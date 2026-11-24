@@ -1,0 +1,96 @@
+name: Build, Test & Release Awesome-OS Explorer
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+    paths-ignore: ['**.md', 'docs/**']
+  pull_request:
+    paths-ignore: ['**.md', 'docs/**']
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: 'Optional release tag (e.g. v0.1.0) to publish explorer-linux-x64.tar.zst'
+        required: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-test:
+    name: Build & Test (C++23 / Wayland / OpenGL ES)
+    runs-on: ubuntu-latest
+    container:
+      image: archlinux:latest
+    steps:
+      - name: Install build & Wayland dependencies
+        run: |
+          pacman -Syu --noconfirm --needed \
+            base-devel git meson ninja pkgconf ccache zstd github-cli \
+            wayland wayland-protocols \
+            libglvnd freetype2 fontconfig noto-fonts \
+            cairo pango harfbuzz \
+            libxkbcommon glib2 glib-networking gvfs dbus shared-mime-info \
+            gdk-pixbuf2 glycin libheif libwebp librsvg libpng \
+            tomlplusplus acl libarchive xz curl libxml2 \
+            nlohmann-json stb \
+            python ffmpeg ffmpegthumbnailer poppler 7zip \
+            just clang
+
+      - uses: actions/checkout@v4
+
+      - name: Configure ccache
+        run: |
+          echo "CCACHE_DIR=$GITHUB_WORKSPACE/.ccache" >> "$GITHUB_ENV"
+          echo "CCACHE_MAXSIZE=1G" >> "$GITHUB_ENV"
+
+      - name: Restore ccache
+        uses: actions/cache/restore@v4
+        with:
+          path: .ccache
+          key: ccache-explorer-${{ github.sha }}
+          restore-keys: ccache-explorer-
+
+      - name: Build Debug & Run C++23 Test Suite
+        run: |
+          just build debug
+          just test debug
+
+      - name: Build Release & Package explorer-linux-x64.tar.zst
+        if: startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch'
+        run: |
+          just build release
+          mkdir -p dist-release/explorer
+          cp build-release/luciole dist-release/explorer/explorer
+          chmod +x dist-release/explorer/explorer
+          tar --zstd -cf dist-release/explorer-linux-x64.tar.zst -C dist-release/explorer explorer
+          (cd dist-release && sha256sum explorer-linux-x64.tar.zst > SHA256SUMS.txt)
+          ls -lh dist-release/
+
+      - name: Publish GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v') || (github.event_name == 'workflow_dispatch' && inputs.release_tag != '')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="${{ inputs.release_tag }}"
+          if [ -z "$TAG" ]; then
+            TAG="${GITHUB_REF#refs/tags/}"
+          fi
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" dist-release/explorer-linux-x64.tar.zst dist-release/SHA256SUMS.txt --clobber
+          else
+            gh release create "$TAG" dist-release/explorer-linux-x64.tar.zst dist-release/SHA256SUMS.txt \
+              --title "Awesome-OS Explorer ${TAG}" \
+              --notes "Native C++23 Wayland + OpenGL ES file manager (zero Qt/GTK) for Awesome-OS & T2Desktop."
+          fi
+
+      - name: Save ccache
+        if: github.event_name == 'push'
+        uses: actions/cache/save@v4
+        with:
+          path: .ccache
+          key: ccache-explorer-${{ github.sha }}

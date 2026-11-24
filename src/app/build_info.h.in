@@ -1,0 +1,6 @@
+#pragma once
+
+#mesondefine LUCIOLE_VERSION
+#mesondefine LUCIOLE_BUILD_TYPE
+#mesondefine LUCIOLE_COMPILER
+#mesondefine LUCIOLE_INSTALL_ASSETSDIR

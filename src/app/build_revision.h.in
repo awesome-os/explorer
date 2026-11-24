@@ -1,0 +1,3 @@
+#pragma once
+
+#define LUCIOLE_BUILD_REVISION "@VCS_TAG@"

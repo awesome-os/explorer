@@ -1,0 +1,9 @@
+#pragma once
+
+namespace luciole::completions {
+
+  inline constexpr char kBash[] = R"completions(@BASH_COMPLETIONS@)completions";
+  inline constexpr char kZsh[] = R"completions(@ZSH_COMPLETIONS@)completions";
+  inline constexpr char kFish[] = R"completions(@FISH_COMPLETIONS@)completions";
+
+} // namespace luciole::completions

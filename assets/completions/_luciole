@@ -1,0 +1,22 @@
+#compdef luciole
+_arguments \
+  '(- *)'{-h,--help}'[Show help]' \
+  '(- *)'{-v,--version}'[Show version]' \
+  '1:command or directory:->first' \
+  '*::argument:->arguments'
+
+if [[ $state == first ]]; then
+  _alternative 'commands:command:(completions config)' 'directories:directory:_directories'
+  return
+fi
+
+case $words[1] in
+  completions) _values 'shell' bash zsh fish ;;
+  config)
+    if (( CURRENT == 2 )); then
+      _values 'command' validate
+    elif [[ $words[2] == validate ]]; then
+      _files
+    fi
+    ;;
+esac

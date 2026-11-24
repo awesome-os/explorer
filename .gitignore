@@ -1,0 +1,13 @@
+build-*/
+__pycache__/
+.cache/
+.direnv/
+.envrc
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+result
+result-*
+/compile_commands.json

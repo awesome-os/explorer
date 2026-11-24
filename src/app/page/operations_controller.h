@@ -1,0 +1,53 @@
+#pragma once
+
+#include "core/timer_manager.h"
+#include "model/job_activity.h"
+
+#include <array>
+#include <functional>
+#include <memory>
+#include <optional>
+#include <utility>
+
+class Button;
+class InputArea;
+class Label;
+class OperationHub;
+class OperationsView;
+class PageContext;
+class ScrollView;
+enum class ActivityAction;
+
+// Application-wide job presentation. Services and accepted jobs outlive this view.
+class OperationsController {
+public:
+  OperationsController(PageContext& page, OperationHub& hub, std::function<void(std::uint64_t, bool)> route);
+  std::unique_ptr<Button> buildButton();
+  void markDirty();
+  void onFrame();
+  void open();
+  void layoutDialog();
+  void parentConfigured();
+  void revealFocus(InputArea* focus);
+
+private:
+  void act(std::uint64_t id, ActivityAction action);
+  void details(std::uint64_t id);
+  void closed();
+  float popupHeight(std::size_t count) const;
+
+  PageContext& m_page;
+  OperationHub& m_hub;
+  std::function<void(std::uint64_t, bool)> m_route;
+  Button *m_button = nullptr, *m_clear = nullptr;
+  OperationsView* m_view = nullptr;
+  ScrollView* m_detailsScroll = nullptr;
+  Label* m_reportLabel = nullptr;
+  Timer m_progress;
+  std::size_t m_count = 0;
+  std::optional<std::array<int, 4>> m_anchor;
+  std::optional<std::uint64_t> m_pendingDetails;
+  bool m_reopen = false;
+  std::pair<std::uint32_t, std::uint32_t> m_parentSize;
+  bool m_dirty = true;
+};

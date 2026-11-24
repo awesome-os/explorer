@@ -1,0 +1,8 @@
+#pragma once
+
+namespace luciole {
+
+  // The application icon from assets/icons/dev.noctalia.luciole.svg.
+  inline constexpr char kAppIconSvg[] = R"svg(@APP_ICON@)svg";
+
+} // namespace luciole

@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Name=Luciole
+GenericName=File Manager
+Comment=Browse and manage files
+Exec=luciole %F
+Icon=dev.noctalia.luciole
+Terminal=false
+Categories=System;FileTools;FileManager;
+MimeType=inode/directory;
+StartupNotify=true
+StartupWMClass=dev.noctalia.luciole
