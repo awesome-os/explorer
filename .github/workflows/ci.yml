@@ -60,7 +60,7 @@ jobs:
           just build debug
           meson configure build-debug -Dtests=enabled
           meson compile -C build-debug
-          TESTS=$(meson test -C build-debug --list | awk '{print $NF}' | grep -v '^drive-removal$')
+          TESTS=$(meson test -C build-debug --list | awk -F/ '{print $NF}' | awk '{print $NF}' | grep -v 'drive-removal')
           meson test -C build-debug --print-errorlogs --num-processes 1 --timeout-multiplier 2 $TESTS
           meson test -C build-debug --print-errorlogs drive-removal || echo "::warning::drive-removal skipped under Docker overlayfs"
 
