@@ -1,0 +1,36 @@
+{
+  "schema": "holo-compiler-lockfile-v1",
+  "abiMagic": "0x33564742",
+  "casLayout": "v11",
+  "repo": "awesome-os/explorer",
+  "targets": [
+    "linux-x64"
+  ],
+  "generatedAt": "2026-11-24T23:53:02.473Z",
+  "dependencies": [
+    {
+      "id": "awesome-os/explorer/explorer-linux-x64.tar.zst",
+      "kind": "object",
+      "version": "v0.1.0",
+      "target": "linux-x64",
+      "sha512": "322f93e56e7a47ed0a3c387611f7e3837752781b86955b8c3291715eeddd95caa98673ee288c5aec754aa138781d0ce3d6b3d2af23a74cf8c062f8ad8a6bcc5e",
+      "size": 3904726,
+      "executable": false,
+      "blob": "v11/files/32/322f93e56e7a47ed0a3c387611f7e3837752781b86955b8c3291715eeddd95caa98673ee288c5aec754aa138781d0ce3d6b3d2af23a74cf8c062f8ad8a6bcc5e",
+      "url": "https://github.com/awesome-os/explorer/releases/download/v0.1.0/explorer-linux-x64.tar.zst",
+      "dependencies": []
+    },
+    {
+      "id": "awesome-os/explorer/SHA256SUMS.txt",
+      "kind": "object",
+      "version": "v0.1.0",
+      "target": "any",
+      "sha512": "8600ba4f755df698f7245b7824dda7c6408b0078dc9810690b74aa3d81945661ac455331faf4ec3de6d6e6498a42329a3d85c9f94f51795c529bfffe8ed9d3fa",
+      "size": 93,
+      "executable": false,
+      "blob": "v11/files/86/8600ba4f755df698f7245b7824dda7c6408b0078dc9810690b74aa3d81945661ac455331faf4ec3de6d6e6498a42329a3d85c9f94f51795c529bfffe8ed9d3fa",
+      "url": "https://github.com/awesome-os/explorer/releases/download/v0.1.0/SHA256SUMS.txt",
+      "dependencies": []
+    }
+  ]
+}
