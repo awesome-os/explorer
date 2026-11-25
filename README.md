@@ -30,9 +30,9 @@ MIT License — see [`LICENSE`](./LICENSE). Hard-forked from `noctalia-dev/lucio
 ## Quick Install & Run (Windows / Linux / macOS)
 
 ```sh
-# Download latest release assets (all platforms)
-gh release download -R awesome-os/explorer --dir ./explorer-release
+# Install / hydrate from v11 CAS via holo-pm
+holo-pm install repository://github.com/awesome-os/explorer@main
 
-# Or clone source directly (all platforms)
-git clone https://github.com/awesome-os/explorer.git && cd explorer
+# Or project & run directly via holo-project (0-byte hardlink)
+holo-project "project://cpp/explorer?from=repository://github.com/awesome-os/explorer@main"
 ```
